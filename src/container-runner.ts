@@ -17,7 +17,7 @@ import {
 } from './config.js';
 import { readEnvFile } from './env.js';
 import { logger } from './logger.js';
-import { validateAdditionalMounts } from './mount-security.js';
+import { loadMountAllowlist, validateAdditionalMounts } from './mount-security.js';
 import { RegisteredGroup } from './types.js';
 
 // Sentinel markers for robust output parsing (must match agent-runner)
@@ -79,6 +79,22 @@ function buildVolumeMounts(
       containerPath: '/workspace/group',
       readonly: false,
     });
+
+    // Auto-mount roots from the allowlist (personal config outside the repo)
+    const allowlist = loadMountAllowlist();
+    if (allowlist) {
+      for (const root of allowlist.allowedRoots) {
+        if (!root.autoMount) continue;
+        const expandedPath = root.path.startsWith('~/') ? path.join(homeDir, root.path.slice(2)) : root.path;
+        if (!fs.existsSync(expandedPath)) continue;
+        const mountName = root.containerPath || path.basename(expandedPath);
+        mounts.push({
+          hostPath: expandedPath,
+          containerPath: `/workspace/${mountName}`,
+          readonly: !root.allowReadWrite,
+        });
+      }
+    }
   } else {
     // Other groups only get their own folder
     mounts.push({

@@ -23,6 +23,10 @@ export interface AllowedRoot {
   path: string;
   // Whether read-write mounts are allowed under this root
   allowReadWrite: boolean;
+  // If true, automatically mount for the main group (no per-group DB config needed)
+  autoMount?: boolean;
+  // Container mount point name — mounted at /workspace/{containerPath}. Defaults to basename of path.
+  containerPath?: string;
   // Optional description for documentation
   description?: string;
 }
